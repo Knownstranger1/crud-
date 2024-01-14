@@ -1,5 +1,13 @@
 /* eslint-disable prettier/prettier */
-import { Body, Controller, Delete, Get, Param, Post, Put, } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { AppService } from './app.service';
 import { User } from './table/user';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -7,8 +15,11 @@ import { Repository } from 'typeorm';
 
 @Controller('user')
 export class AppController {
-  constructor(private readonly userService: AppService,@InjectRepository(User)
-  private readonly userRepository: Repository<User>,) {}
+  constructor(
+    private readonly userService: AppService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
 
   @Get()
   findAll(): Promise<User[]> {
@@ -17,7 +28,7 @@ export class AppController {
 
   @Get(':id')
   findOne(@Param('id') id: string): Promise<User> {
-    return this.userService.findOne(+id);
+    return this.userService.findOne({ where: { id } });
   }
 
   @Post()
@@ -26,8 +37,15 @@ export class AppController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() user: User): Promise<User> {
-    return this.userService.update(+id, user);
+  async update(@Param('id') id: string, @Body() user: User): Promise<User> {
+    const existingUser: any = this.userService.findOne({ where: { id } });
+    if (existingUser) {
+      Object.assign(existingUser, user);
+      // Save the updated user to the database
+      return await this.userRepository.save(existingUser);
+    } else {
+      throw new Error(`User with conditions ${JSON.stringify(id)} not found`);
+    }
   }
 
   @Delete(':id')
